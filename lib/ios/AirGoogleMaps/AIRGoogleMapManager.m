@@ -48,6 +48,7 @@ RCT_EXPORT_MODULE()
 
 RCT_EXPORT_VIEW_PROPERTY(initialRegion, MKCoordinateRegion)
 RCT_EXPORT_VIEW_PROPERTY(region, MKCoordinateRegion)
+RCT_EXPORT_VIEW_PROPERTY(navigationMode, BOOL)
 RCT_EXPORT_VIEW_PROPERTY(showsBuildings, BOOL)
 RCT_EXPORT_VIEW_PROPERTY(showsCompass, BOOL)
 //RCT_EXPORT_VIEW_PROPERTY(showsScale, BOOL)  // Not supported by GoogleMaps
@@ -91,6 +92,36 @@ RCT_EXPORT_METHOD(animateToRegion:(nonnull NSNumber *)reactTag
     }
   }];
 }
+
+RCT_EXPORT_METHOD(animateToNavigation:(nonnull NSNumber *)reactTag
+                  withRegion:(MKCoordinateRegion)region
+                  withBearing:(CGFloat)bearing
+                  withZoom:(CGFloat)zoom
+                  withViewAngle:(CGFloat)viewAngle
+                  withDuration:(CGFloat)duration)
+{
+  [self.bridge.uiManager addUIBlock:^(__unused RCTUIManager *uiManager, NSDictionary<NSNumber *, UIView *> *viewRegistry) {
+    id view = viewRegistry[reactTag];
+    if (![view isKindOfClass:[AIRGoogleMap class]]) {
+      RCTLogError(@"Invalid view returned from registry, expecting AIRGoogleMap, got: %@", view);
+    } else {
+      // Core Animation must be used to control the animation's duration
+      // See http://stackoverflow.com/a/15663039/171744
+      [CATransaction begin];
+      [CATransaction setAnimationDuration:duration/1000];
+      AIRGoogleMap *mapView = (AIRGoogleMap *)view;
+
+      GMSCameraPosition *camera = [GMSCameraPosition cameraWithLatitude:region.center.latitude
+                                                             longitude:region.center.longitude
+                                                                  zoom:zoom
+                                                               bearing:bearing
+                                                          viewingAngle:viewAngle];
+      [mapView animateToCameraPosition:camera];
+      [CATransaction commit];
+    }
+  }];
+}
+
 
 RCT_EXPORT_METHOD(animateToCoordinate:(nonnull NSNumber *)reactTag
                   withRegion:(CLLocationCoordinate2D)latlng
@@ -261,10 +292,6 @@ RCT_EXPORT_METHOD(takeSnapshot:(nonnull NSNumber *)reactTag
 
 - (NSDictionary *)constantsToExport {
   return @{ @"legalNotice": [GMSServices openSourceLicenseInfo] };
-}
-
-+ (BOOL)requiresMainQueueSetup {
-  return YES;
 }
 
 - (void)mapViewDidFinishTileRendering:(GMSMapView *)mapView {
