@@ -30,10 +30,11 @@ public class AirMapManager extends ViewGroupManager<AirMapView> {
   private static final int ANIMATE_TO_REGION = 1;
   private static final int ANIMATE_TO_COORDINATE = 2;
   private static final int ANIMATE_TO_VIEWING_ANGLE = 3;
-  private static final int ANIMATE_TO_BEARING = 4;
+  private static final int ANIMATE_TO_BEARING = 8; //Not support in android
   private static final int FIT_TO_ELEMENTS = 5;
   private static final int FIT_TO_SUPPLIED_MARKERS = 6;
   private static final int FIT_TO_COORDINATES = 7;
+  private static final int ANIMATE_TO_NAVIGATION = 4;
 
   private final Map<String, Integer> MAP_TYPES = MapBuilder.of(
       "standard", GoogleMap.MAP_TYPE_NORMAL,
@@ -91,6 +92,11 @@ public class AirMapManager extends ViewGroupManager<AirMapView> {
   @ReactProp(name = "customMapStyleString")
   public void setMapStyle(AirMapView view, @Nullable String customMapStyleString) {
     view.map.setMapStyle(new MapStyleOptions(customMapStyleString));
+  }
+
+  @ReactProp(name = "navigationMode", defaultBoolean = false)
+  public void setNavigationMode(AirMapView view, boolean navigationMode) {
+    view.setNavigationMode(navigationMode);
   }
 
   @ReactProp(name = "showsUserLocation", defaultBoolean = false)
@@ -204,6 +210,7 @@ public class AirMapManager extends ViewGroupManager<AirMapView> {
     Double latDelta;
     float bearing;
     float angle;
+    float zoom;
     ReadableMap region;
 
     switch (commandId) {
@@ -214,11 +221,23 @@ public class AirMapManager extends ViewGroupManager<AirMapView> {
         lat = region.getDouble("latitude");
         lngDelta = region.getDouble("longitudeDelta");
         latDelta = region.getDouble("latitudeDelta");
-        LatLngBounds bounds = new LatLngBounds(
+        LatLngBounds mybounds = new LatLngBounds(
             new LatLng(lat - latDelta / 2, lng - lngDelta / 2), // southwest
             new LatLng(lat + latDelta / 2, lng + lngDelta / 2)  // northeast
         );
-        view.animateToRegion(bounds, duration);
+        view.animateToRegion(mybounds, duration);
+        break;
+
+      case ANIMATE_TO_NAVIGATION:
+        region = args.getMap(0);
+        bearing = (float)args.getDouble(1);
+        zoom = (float)args.getDouble(2);
+        angle = (float)args.getDouble(3);
+        duration = args.getInt(4);
+        lng = region.getDouble("longitude");
+        lat = region.getDouble("latitude");
+        LatLng latLng = new LatLng(lat, lng);
+        view.animateToNavigation(latLng, duration, angle, bearing, zoom);
         break;
 
       case ANIMATE_TO_COORDINATE:
@@ -284,10 +303,10 @@ public class AirMapManager extends ViewGroupManager<AirMapView> {
         "animateToRegion", ANIMATE_TO_REGION,
         "animateToCoordinate", ANIMATE_TO_COORDINATE,
         "animateToViewingAngle", ANIMATE_TO_VIEWING_ANGLE,
-        "animateToBearing", ANIMATE_TO_BEARING,
         "fitToElements", FIT_TO_ELEMENTS,
         "fitToSuppliedMarkers", FIT_TO_SUPPLIED_MARKERS,
-        "fitToCoordinates", FIT_TO_COORDINATES
+        "fitToCoordinates", FIT_TO_COORDINATES,
+        "animateToNavigation", ANIMATE_TO_NAVIGATION
     );
   }
 

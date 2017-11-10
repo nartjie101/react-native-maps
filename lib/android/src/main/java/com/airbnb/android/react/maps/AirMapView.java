@@ -71,6 +71,7 @@ public class AirMapView extends MapView implements GoogleMap.InfoWindowAdapter,
   private boolean moveOnMarkerPress = true;
   private boolean cacheEnabled = false;
   private boolean initialRegionSet = false;
+  private boolean navigationMode = false;
 
   private static final String[] PERMISSIONS = new String[]{
       "android.permission.ACCESS_FINE_LOCATION", "android.permission.ACCESS_COARSE_LOCATION"};
@@ -362,14 +363,14 @@ public class AirMapView extends MapView implements GoogleMap.InfoWindowAdapter,
   }
 
   public void setInitialRegion(ReadableMap initialRegion) {
-    if (!initialRegionSet && initialRegion != null) {
+    if (!initialRegionSet && initialRegion != null && !navigationMode) {
       setRegion(initialRegion);
       initialRegionSet = true;
     }
   }
 
   public void setRegion(ReadableMap region) {
-    if (region == null) return;
+    if (region == null || navigationMode) return;
 
     Double lng = region.getDouble("longitude");
     Double lat = region.getDouble("latitude");
@@ -390,6 +391,10 @@ public class AirMapView extends MapView implements GoogleMap.InfoWindowAdapter,
       map.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, 0));
       boundsToMove = null;
     }
+  }
+
+  public void setNavigationMode(boolean navigationMode) {
+    this.navigationMode = navigationMode;
   }
 
   public void setShowsUserLocation(boolean showUserLocation) {
@@ -568,6 +573,16 @@ public class AirMapView extends MapView implements GoogleMap.InfoWindowAdapter,
     if (map != null) {
       startMonitoringRegion();
       map.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 0), duration, null);
+    }
+  }
+
+  public void animateToNavigation(LatLng LatLng, int duration, float angle, float bearing, float zoom) {
+    if (map != null) {
+      startMonitoringRegion();
+      CameraPosition cameraPosition = new CameraPosition.Builder(map.getCameraPosition())
+              .tilt(angle).target(LatLng).bearing(bearing).zoom(zoom)
+              .build();
+      map.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition), duration, null);
     }
   }
 
