@@ -75,6 +75,8 @@ public class AirMapMarker extends AirMapFeature {
 
   private boolean hasCustomMarkerView = false;
 
+  private float density;
+  
   private final DraweeHolder<?> logoHolder;
   private DataSource<CloseableReference<CloseableImage>> dataSource;
   private final ControllerListener<ImageInfo> mLogoControllerListener =
@@ -93,7 +95,12 @@ public class AirMapMarker extends AirMapFeature {
                 CloseableStaticBitmap closeableStaticBitmap = (CloseableStaticBitmap) image;
                 Bitmap bitmap = closeableStaticBitmap.getUnderlyingBitmap();
                 if (bitmap != null) {
-                  bitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true);
+                  // bitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true);
+                  bitmap = Bitmap.createScaledBitmap(
+                          bitmap,
+                          (int) (bitmap.getWidth() / 2 * density),
+                          (int) (bitmap.getHeight() / 2 * density),
+                          false);
                   iconBitmap = bitmap;
                   iconBitmapDescriptor = BitmapDescriptorFactory.fromBitmap(bitmap);
                 }
@@ -114,6 +121,7 @@ public class AirMapMarker extends AirMapFeature {
     this.context = context;
     logoHolder = DraweeHolder.create(createDraweeHierarchy(), context);
     logoHolder.onAttach();
+    density = context.getResources().getDisplayMetrics().density;
   }
 
   public AirMapMarker(Context context, MarkerOptions options) {
@@ -121,6 +129,7 @@ public class AirMapMarker extends AirMapFeature {
     this.context = context;
     logoHolder = DraweeHolder.create(createDraweeHierarchy(), context);
     logoHolder.onAttach();
+    density = context.getResources().getDisplayMetrics().density;
 
     position = options.getPosition();
     setAnchor(options.getAnchorU(), options.getAnchorV());
@@ -292,6 +301,14 @@ public class AirMapMarker extends AirMapFeature {
               drawable.setBounds(0, 0, drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight());
               Canvas canvas = new Canvas(iconBitmap);
               drawable.draw(canvas);
+          } else {
+            Bitmap bitmap = Bitmap.createScaledBitmap(
+                    iconBitmap,
+                    (iconBitmap.getWidth() / 2),
+                    (iconBitmap.getHeight() / 2),
+                    false);
+            iconBitmap = bitmap;
+            iconBitmapDescriptor = BitmapDescriptorFactory.fromBitmap(bitmap);
           }
       }
       update();
